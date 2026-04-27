@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import Income
 from app.schemas import IncomeCreate, IncomeResponse
 from app.auth.firebase_auth import verify_firebase_token
+from app.socket_manager import emit_data_updated
 
 router = APIRouter(prefix="/api/income", tags=["Income"])
 
@@ -37,6 +38,7 @@ async def create_income(
     db.add(new_income)
     db.commit()
     db.refresh(new_income)
+    await emit_data_updated(user_id, "income_added")
     return new_income
 
 
@@ -121,4 +123,5 @@ async def delete_income(
     
     db.delete(income)
     db.commit()
+    await emit_data_updated(user_id, "income_deleted")
     return None

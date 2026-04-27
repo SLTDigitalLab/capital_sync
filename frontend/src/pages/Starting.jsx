@@ -25,7 +25,8 @@ const Starting = () => {
     ${isLoaded ? "translate-x-[0%] opacity-100" : "-translate-x-full opacity-0"}`}>
               <div>
                 <div>
-                  <h1 className='text-blue-500 font-bold text-8xl'>Capital Sync</h1>
+                  <h1 className='font-bold text-6xl sm:text-8xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-[#8080FF]'>Capital Sync</h1>
+                  <p className='text-xl text-center sm:text-left mt-2'>Manage Your Future Now</p>
                 </div>
                 <div className='py-8 pr-8'>
                   <div>

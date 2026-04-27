@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import ExpensesPage from './pages/ExpensesPage';
 import TransactionPage from './pages/TransactionPage';
 import { useEffect, useState } from 'react';
+import { DataRefreshProvider } from './context/DataRefreshContext';
 
 
 const App = () => {
@@ -29,19 +30,20 @@ const App = () => {
   }, [API]);
   
   return (
-    <Routes>
-      <Route path="/" element={<Starting />} />
-      <Route path="/login" element={<Loginpage />} />
-      <Route path="/home-page" element={<Home/>} />
-      <Route path="/income-page" element={<IncomePage/>} />
-      <Route path="/sign-up" element={<SignUp/>} />
-      <Route path="/about-us" element={<Aboutus/>} />
-      <Route path="/analytics" element={<Analytics/>} />
-      <Route path="/expenses-page" element={<ExpensesPage/>} />
-      <Route path="/transaction-page" element={<TransactionPage/>} />
-      
-    </Routes>
+    <DataRefreshProvider>
+      <Routes>
+        <Route path="/" element={<Starting />} />
+        <Route path="/login" element={<Loginpage />} />
+        <Route path="/home-page" element={<Home/>} />
+        <Route path="/income-page" element={<IncomePage/>} />
+        <Route path="/sign-up" element={<SignUp/>} />
+        <Route path="/about-us" element={<Aboutus/>} />
+        <Route path="/analytics" element={<Analytics/>} />
+        <Route path="/expenses-page" element={<ExpensesPage/>} />
+        <Route path="/transaction-page" element={<TransactionPage/>} />
+      </Routes>
+    </DataRefreshProvider>
   );
 }
 
-export default App
+export default App

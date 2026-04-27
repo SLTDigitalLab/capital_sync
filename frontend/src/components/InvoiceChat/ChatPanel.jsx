@@ -2,15 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import InvoiceCard from "./Invoicecard";
 import { useInvoiceStorage } from "../../hooks/useInvoiceStorage";
 import { getAuthToken } from "../../utils/authUtils";
+import { useTriggerRefresh } from "../../context/DataRefreshContext";
 
 const WELCOME = {
   id:   "welcome",
   role: "bot",
-  text: "Hi! Upload an invoice and I'll extract the data for you.",
+  text: "Hi! Upload an invoice or type a message — I can add/remove incomes and expenses for you.",
 };
 
-const buildApiUrl = (provider) =>
+const buildExtractUrl = (provider) =>
   `http://127.0.0.1:8000/extract/invoice?provider=${provider}`;
+
+const CHAT_URL = "http://127.0.0.1:8000/api/chat/";
 
 const PROVIDERS = {
   gemini: { label: "Gemini", dotColor: "bg-blue-400"    },
@@ -20,17 +23,17 @@ const PROVIDERS = {
 const uid = () => crypto.randomUUID();
 
 export default function ChatPanel({ activeTab, onClose, userId }) {
-  // userId — parent component (InvoiceChatWidget) එකෙන් pass වෙනවා
-  // token needed නෑ — user already logged in
-
-  const [messages,  setMessages]  = useState([WELCOME]);
-  const [loading,   setLoading]   = useState(false);
-  const [inputText, setInputText] = useState("");
-  const [provider,  setProvider]  = useState("gemini");
+  const [messages,     setMessages]     = useState([WELCOME]);
+  const [loading,      setLoading]      = useState(false);
+  const [inputText,    setInputText]    = useState("");
+  const [provider,     setProvider]     = useState("gemini");
+  // ── NEW: keep conversation history to send back each turn ──
+  const [chatHistory,  setChatHistory]  = useState([]);
 
   const bottomRef    = useRef(null);
   const fileInputRef = useRef(null);
   const storage      = useInvoiceStorage();
+  const triggerRefresh = useTriggerRefresh();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,11 +42,63 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
   const addMessage = (msg) =>
     setMessages((prev) => [...prev, { id: uid(), ...msg }]);
 
-  const handleSendText = () => {
-    if (!inputText.trim()) return;
-    addMessage({ role: "user", text: inputText.trim() });
+  // ── UPDATED: now calls /api/chat and saves history ──────────
+  const handleSendText = async () => {
+    const text = inputText.trim();
+    if (!text) return;
+
     setInputText("");
+    addMessage({ role: "user", text });
+    setLoading(true);
+
+    try {
+      const token = await getAuthToken();
+
+      const res = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          message:  text,
+          provider: provider,
+          history:  chatHistory,   // send current history
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Save updated history for next turn
+      setChatHistory(data.history);
+
+      // Show AI reply in chat
+      addMessage({ role: "bot", text: data.reply });
+
+      // If AI added/removed income or expense, refresh the Home dashboard
+      const reply = data.reply || "";
+      if (
+        reply.includes("✅") ||
+        reply.includes("Saved") ||
+        reply.includes("saved") ||
+        reply.includes("Deleted") ||
+        reply.includes("deleted")
+      ) {
+        triggerRefresh();
+      }
+
+    } catch (e) {
+      addMessage({ role: "bot", text: `❌ ${e.message}` });
+    } finally {
+      setLoading(false);
+    }
   };
+  // ────────────────────────────────────────────────────────────
 
   const handleFileSelect = async (f) => {
     if (!f) return;
@@ -52,15 +107,14 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
     addMessage({ role: "bot",  text: `Using ${PROVIDERS[provider].label} to extract...` });
 
     try {
-      // Token still needed for extract endpoint (auth protected)
       const token = await getAuthToken();
 
       const form = new FormData();
       form.append("file", f);
 
-      const res = await fetch(buildApiUrl(provider), {
+      const res = await fetch(buildExtractUrl(provider), {
         method: "POST",
-        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
       });
 
@@ -87,16 +141,18 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
     });
   };
 
+  // ── UPDATED: also reset chat history on clear ───────────────
   const handleClear = () => {
     storage.clear();
     setMessages([WELCOME]);
+    setChatHistory([]);
   };
 
   const currentProvider = PROVIDERS[provider];
 
   return (
     <>
-      <div className="fixed bottom-24 right-6 z-50 w-80 h-[520px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+      <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-80 h-[520px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-shrink-0">
@@ -139,7 +195,6 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
                   )}
                   {msg.type === "invoice_card" ? (
                     <div className="flex-1 min-w-0">
-                      {/* userId pass to InvoiceCard */}
                       <InvoiceCard data={msg.data} onSave={handleSave} userId={userId} />
                     </div>
                   ) : (
@@ -147,7 +202,10 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
                       ${msg.role === "bot"
                         ? "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
                         : "bg-sky-500 text-white rounded-tr-sm"}`}>
-                      <p>{msg.text}</p>
+                      {/* Render line breaks from AI replies (✅ emoji lines) */}
+                      {msg.text.split("\n").map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -225,9 +283,9 @@ export default function ChatPanel({ activeTab, onClose, userId }) {
             <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()} placeholder="Type a message..."
               className="flex-1 text-xs px-3 py-2 rounded-full border border-slate-200 bg-slate-50 outline-none focus:border-sky-400 focus:bg-white transition-all" />
-            <button onClick={handleSendText} disabled={!inputText.trim()}
+            <button onClick={handleSendText} disabled={!inputText.trim() || loading}
               className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95
-                ${inputText.trim() ? "bg-sky-500 text-white hover:bg-sky-600" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}>
+                ${inputText.trim() && !loading ? "bg-sky-500 text-white hover:bg-sky-600" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="22" y1="2" x2="11" y2="13"/>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"/>

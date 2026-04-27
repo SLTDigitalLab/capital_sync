@@ -9,6 +9,7 @@ import AddButton from '../assets/component/AddButton'
 import Toast from '../assets/component/Toast'
 import { createIncome } from '../services/incomeService'
 import InvoiceChatWidget from '../components/InvoiceChat/InvoiceChatWidget';
+import { useTriggerRefresh } from '../context/DataRefreshContext';
 
 const IncomePage = () => {
 
@@ -19,6 +20,7 @@ const IncomePage = () => {
   const [date, setDate]                     = useState('');
   const [loading, setLoading]               = useState(false);
   const [toast, setToast]                   = useState(null);
+  const triggerRefresh = useTriggerRefresh();
 
   // ── Animation state ──────────────────────────────────────────────
   const [loaded, setLoaded]       = useState(false);
@@ -98,7 +100,8 @@ const IncomePage = () => {
         date: new Date(date).toISOString(),
       };
       await createIncome(incomeData);
-      setModalOpen(true);         // show success modal (like App.jsx)
+      triggerRefresh();  // update Home dashboard immediately
+      setModalOpen(true);
       setAddDescription('');
       setIncomeAmount('');
       setCategory('');
@@ -147,8 +150,10 @@ const IncomePage = () => {
       <div className='relative'>
 
         {/* NAV */}
-        <div className='flex justify-center pt-8' {...fadeUp('0ms')}>
-          <DashBar />
+        <div className='w-full flex justify-center pt-8' {...fadeUp('0ms')}>
+          <div className="w-full">
+            <DashBar />
+          </div>
         </div>
 
         {/* MAIN CONTENT — two-column layout from App.jsx */}
@@ -158,7 +163,7 @@ const IncomePage = () => {
           <div className='flex flex-col'>
 
             {/* Heading — fadeUp */}
-            <p className='text-white font-bold text-[80px] leading-none' {...fadeUp('200ms')}>
+            <p className='text-white font-bold text-5xl sm:text-[60px] md:text-[80px] leading-none' {...fadeUp('200ms')}>
               Income
             </p>
 
@@ -182,7 +187,7 @@ const IncomePage = () => {
 
                   {/* Front */}
                   <div className='flip-card-front'>
-                    <img src='/income.png' alt='Income' />
+                    <img src='/income.png' alt='Income' className="w-full max-w-[280px] sm:max-w-[420px]" />
                   </div>
 
                   {/* Back */}
@@ -217,7 +222,7 @@ const IncomePage = () => {
 
           {/* ── RIGHT SIDE — Form card, slideRight ────────────────── */}
           <div
-            className='w-full lg:w-[555px] bg-black/50 rounded-3xl px-[48px] py-[48px]'
+            className='w-full lg:w-[555px] bg-black/50 rounded-3xl px-6 sm:px-[48px] py-[30px] sm:py-[48px]'
             {...slideRight('400ms')}
           >
             {/* Skeleton while loading */}

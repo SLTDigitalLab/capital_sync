@@ -97,18 +97,18 @@ const TransactionPage = () => {
       <div className={`relative pt-0 transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
 
         {/* NAV */}
-        <div className="flex justify-center pt-8">
-          <div className="fade-slide-up stagger-1">
+        <div className="w-full flex justify-center pt-8">
+          <div className="fade-slide-up stagger-1 w-full">
             <DashBar />
           </div>
         </div>
 
         <div className="flex justify-center">
-          <div className="mt-12 w-[1515px] px-4">
+          <div className="mt-12 w-full max-w-[1515px] px-4">
 
             {/* PAGE TITLE */}
             <div className="fade-slide-up stagger-1 mb-6">
-              <h1 className="text-white text-5xl font-black tracking-tighter leading-none">
+              <h1 className="text-white text-4xl sm:text-5xl font-black tracking-tighter leading-none">
                 Transactions
               </h1>
               <div className="h-px bg-white/15 mt-4" />
@@ -146,18 +146,18 @@ const TransactionPage = () => {
               <div className="fade-slide-up stagger-3">
 
                 {/* TABLE */}
-                <div className="w-full bg-black/50 rounded-[20px] overflow-hidden hover:bg-black/40 transition duration-300">
+                <div className="w-full bg-black/50 rounded-[20px] overflow-x-auto hover:bg-black/40 transition duration-300">
 
                   {/* Header */}
-                  <div className="flex justify-between px-6 py-4 border-b border-white/10">
+                  <div className="flex justify-between px-4 sm:px-6 py-4 border-b border-white/10 min-w-[300px]">
                     <div className="flex-1 text-white/50 text-xs font-mono uppercase tracking-widest">Title</div>
-                    <div className="w-36 text-center text-white/50 text-xs font-mono uppercase tracking-widest">Category</div>
-                    <div className="w-32 text-center text-white/50 text-xs font-mono uppercase tracking-widest">Date</div>
-                    <div className="w-32 text-right text-white/50 text-xs font-mono uppercase tracking-widest">Amount</div>
+                    <div className="hidden sm:block w-36 text-center text-white/50 text-xs font-mono uppercase tracking-widest">Category</div>
+                    <div className="hidden md:block w-32 text-center text-white/50 text-xs font-mono uppercase tracking-widest">Date</div>
+                    <div className="w-24 sm:w-32 text-right text-white/50 text-xs font-mono uppercase tracking-widest">Amount</div>
                   </div>
 
                   {/* Rows */}
-                  <div>
+                  <div className="min-w-[300px]">
                     {transactions.map((transaction, index) => (
                       <div
                         key={transaction.id}
@@ -166,18 +166,18 @@ const TransactionPage = () => {
                           opacity: 0,
                         }}
                         className={`
-                          flex justify-between items-center px-6 py-4 text-white
+                          flex justify-between items-center px-4 sm:px-6 py-4 text-white
                           hover:bg-white/5 transition-all duration-200 cursor-default
                           fade-slide-up
                           ${index !== transactions.length - 1 ? 'border-b border-white/6' : ''}
                         `}
                       >
                         {/* Title + type badge */}
-                        <div className="flex-1 flex items-center gap-3">
-                          <span className="font-medium text-white/90">
+                        <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3 overflow-hidden pr-2">
+                          <span className="font-medium text-white/90 truncate w-full sm:w-auto">
                             {transaction.title || 'Untitled'}
                           </span>
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-mono
+                          <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-mono whitespace-nowrap
                             ${transaction.type === 'income'
                               ? 'bg-[#8080FF]/20 text-[#8080FF]'
                               : 'bg-[#016394]/30 text-[#4a9ede]'
@@ -187,17 +187,17 @@ const TransactionPage = () => {
                         </div>
 
                         {/* Category */}
-                        <div className="w-36 text-center text-white/50 text-sm">
+                        <div className="hidden sm:block w-36 text-center text-white/50 text-sm truncate">
                           {transaction.category}
                         </div>
 
                         {/* Date */}
-                        <div className="w-32 text-center text-white/40 text-sm font-mono">
+                        <div className="hidden md:block w-32 text-center text-white/40 text-sm font-mono whitespace-nowrap">
                           {formatDate(transaction.date)}
                         </div>
 
                         {/* Amount */}
-                        <div className="w-32 text-right text-sm">
+                        <div className="w-24 sm:w-32 text-right text-sm whitespace-nowrap">
                           {formatAmount(transaction.amount, transaction.type)}
                         </div>
                       </div>
@@ -206,19 +206,19 @@ const TransactionPage = () => {
                 </div>
 
                 {/* PAGINATION */}
-                <div className="flex justify-between items-center mt-5 fade-slide-up stagger-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-5 fade-slide-up stagger-4">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-[56px] text-white text-sm font-medium
+                    className="w-full sm:w-auto px-5 py-2 rounded-[56px] text-white text-sm font-medium
                                outline outline-white/20 hover:outline-blue-400 hover:text-blue-400
                                disabled:opacity-30 disabled:cursor-not-allowed
-                               transition duration-200"
+                               transition duration-200 text-center"
                   >
                     ← Previous
                   </button>
 
-                  <div className="bg-black/50 rounded-[56px] px-6 py-2 text-sm text-white/60 font-mono">
+                  <div className="bg-black/50 rounded-[56px] px-6 py-2 text-sm text-white/60 font-mono text-center">
                     Page <span className="text-white font-semibold">{currentPage}</span>
                     {' '}of{' '}
                     <span className="text-white font-semibold">{totalPages}</span>
@@ -227,10 +227,10 @@ const TransactionPage = () => {
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-5 py-2 rounded-[56px] text-white text-sm font-medium
+                    className="w-full sm:w-auto px-5 py-2 rounded-[56px] text-white text-sm font-medium
                                outline outline-white/20 hover:outline-blue-400 hover:text-blue-400
                                disabled:opacity-30 disabled:cursor-not-allowed
-                               transition duration-200"
+                               transition duration-200 text-center"
                   >
                     Next →
                   </button>
