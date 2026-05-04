@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import DashBar from '../assets/component/DashBar'
 import IncomeExpensesChart from '../assets/component/IncomeExpensesChart';
 import PiChart from '../assets/component/PiChart';
@@ -10,7 +10,6 @@ import AccountCard from '../assets/component/AccountCard';
 import LatesFiveIncomes from '../assets/component/LatesFiveIncomes';
 import LatestFiveExpenses from '../assets/component/LatestFiveExpenses';
 import InvoiceChatWidget from '../components/InvoiceChat/InvoiceChatWidget';
-import { useOnDataRefresh } from '../context/DataRefreshContext';
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -48,9 +47,8 @@ const Home = () => {
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchData()
-      } else {
+      if (user) fetchData()
+      else {
         setIncomes([])
         setExpenses([])
         setLoading(false)
@@ -58,15 +56,6 @@ const Home = () => {
     })
     return () => unsub()
   }, [])
-
-  // ── REAL-TIME: re-fetch when any component calls triggerRefresh() ──
-  const subscribe = useOnDataRefresh();
-  useEffect(() => {
-    if (!subscribe) return;
-    const unsub = subscribe(() => fetchData());
-    return unsub;
-  }, []);
-
 
   // ── TRANSACTIONS ─────────────────────────────────────────────────
   const [transactions, setTransactions] = useState([])
@@ -232,41 +221,34 @@ const Home = () => {
       case "Life Time": {
         const allItems = [...incomes, ...expenses]
         if (allItems.length === 0) return []
-        
-        // Find earliest year, but ignore crazy outliers (e.g. before 1970)
         const earliest = allItems.reduce((min, item) => {
           const d = new Date(item.date)
-          if (!isNaN(d) && d.getFullYear() > 1970 && d < min) return d
-          return min
+          return !isNaN(d) && d < min ? d : min
         }, new Date())
-        
-        const startYear = earliest.getFullYear()
-        const endYear = now.getFullYear()
-        
         const slots = []
-        // Create yearly slots to prevent massive arrays and massive chart widths
-        for (let y = startYear; y <= endYear; y++) {
+        const cursor = new Date(earliest.getFullYear(), earliest.getMonth(), 1)
+        const end    = new Date(now.getFullYear(), now.getMonth(), 1)
+        while (cursor <= end) {
           slots.push({
-            year: y,
-            label: String(y),
+            monthIndex: cursor.getMonth(),
+            year:       cursor.getFullYear(),
+            label:      `${monthNames[cursor.getMonth()]} ${cursor.getFullYear()}`,
             income: 0, expenses: 0,
           })
+          cursor.setMonth(cursor.getMonth() + 1)
         }
-        
         incItems.forEach(item => {
           const d = new Date(item.date)
           if (isNaN(d)) return
-          const s = slots.find(s => s.year === d.getFullYear())
+          const s = slots.find(s => s.monthIndex === d.getMonth() && s.year === d.getFullYear())
           if (s) s.income += Number(item.amount || 0)
         })
-        
         expItems.forEach(item => {
           const d = new Date(item.date)
           if (isNaN(d)) return
-          const s = slots.find(s => s.year === d.getFullYear())
+          const s = slots.find(s => s.monthIndex === d.getMonth() && s.year === d.getFullYear())
           if (s) s.expenses += Number(item.amount || 0)
         })
-        
         return slots.map(s => ({ month: s.label, income: s.income, expenses: s.expenses }))
       }
       default: return monthlySlots(1)
@@ -301,8 +283,8 @@ const Home = () => {
       <div className={`relative transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
 
         {/* ── NAV ───────────────────────────────────────────────── */}
-        <div className="w-full flex justify-center pt-6">
-          <div className="fade-slide-up stagger-1 w-full">
+        <div className="flex justify-center pt-6">
+          <div className="fade-slide-up stagger-1">
             <DashBar />
           </div>
         </div>
@@ -376,7 +358,7 @@ const Home = () => {
                   {/* Bar chart */}
                   <div
                     key={activeMonth + "-bar"}
-                    className="w-full min-h-[300px] lg:h-[325px]
+                    className="w-full h-[220px] sm:h-[270px] md:h-[300px] lg:h-[325px]
                                bg-black/50 rounded-[20px] mt-3 sm:mt-[28px] shadow-md
                                hover:bg-black/30 hover:shadow-2xl transition duration-300
                                fade-slide-up stagger-1"
@@ -387,26 +369,20 @@ const Home = () => {
               </div>
 
               {/* ── ROW 2 ─────────────────────────────────────── */}
-              <div className="flex flex-col xl:flex-row gap-3 sm:gap-[10px] mt-3 sm:mt-[15px] fade-slide-up stagger-3">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-[10px] mt-3 sm:mt-[15px] fade-slide-up stagger-3">
 
                 {/* Pie chart */}
                 <div
                   key={activeMonth + "-pie"}
-                  className="w-full xl:flex-1 h-[260px] sm:h-[280px] lg:h-[320px]
+                  className="w-full sm:flex-1 h-[260px] sm:h-[280px] lg:h-[320px]
                               rounded-[20px] fade-slide-up stagger-1 hover:bg-black/30 hover:shadow-2xl transition duration-300"
                 >
                   <PiChart totalIncome={totalIncome} totalExpense={totalExpense} />
                 </div>
 
                 {/* Placeholder cards */}
-                <div className="flex flex-col md:flex-row xl:flex-row gap-3 sm:gap-[10px] w-full xl:w-auto">
-                  <div className='w-full md:flex-1 xl:w-[400px] xl:flex-none h-[320px] rounded-2xl bg-black/50 px-[20px] md:px-[30px] py-[15px]'>
-                    <LatesFiveIncomes latestIncomes={latestIncomes} totalIncome={totalIncome} />
-                  </div>
-                  <div className='w-full md:flex-1 xl:w-[400px] xl:flex-none h-[320px] rounded-2xl bg-black/50 px-[20px] md:px-[30px] py-[15px]'>
-                    <LatestFiveExpenses latestExpenses={latestExpenses} totalExpense={totalExpense} />
-                  </div>
-                </div>
+                <div className='w-[400px] h-[320px] rounded-2xl bg-black/50 px-[30px] py-[15px]'><LatesFiveIncomes latestIncomes={latestIncomes} totalIncome={totalIncome} /></div>
+                <div className='w-[400px] h-[320px] rounded-2xl bg-black/50 px-[30px] py-[15px]'><LatestFiveExpenses latestExpenses={latestExpenses} totalExpense={totalExpense} /></div>
               </div>
             </>
           )}

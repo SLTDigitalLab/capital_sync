@@ -6,17 +6,24 @@ export default function InvoiceChatWidget() {
   const [open,   setOpen]   = useState(false);
   const [userId, setUserId] = useState(null);
 
-  // Get user ID when component mounts — user already logged in at this point
   useEffect(() => {
     const id = getCurrentUserId();
     setUserId(id);
   }, []);
 
+  // Chat open වූ විට is_first_message track කරන්න
+  const [chatKey, setChatKey] = useState(0);
+
+  const handleOpen = () => {
+    setOpen(true);
+    setChatKey((k) => k + 1); // panel remount → fresh first-message state
+  };
+
   return (
     <>
-      {/* Chat panel — userId pass down the chain */}
       {open && (
         <ChatPanel
+          key={chatKey}
           onClose={() => setOpen(false)}
           userId={userId}
         />
@@ -24,7 +31,7 @@ export default function InvoiceChatWidget() {
 
       {/* Floating button */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? setOpen(false) : handleOpen())}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg flex items-center justify-center transition-all active:scale-95"
         title="Invoice AI"
       >

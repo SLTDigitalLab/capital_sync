@@ -119,11 +119,9 @@ const Analytics = () => {
             opacity: loaded ? 1 : 0,
             transition: 'opacity 400ms ease',
           }}
-          className='w-full flex justify-center pt-8'
+          className='flex justify-center pt-8'
         >
-          <div className="w-full">
-            <DashBar />
-          </div>
+          <DashBar />
         </div>
 
         {/* PAGE TITLE — left-aligned, raw, editorial */}
@@ -136,7 +134,7 @@ const Analytics = () => {
           className='max-w-6xl mx-auto px-6 mt-14 mb-2'
         >
           <div className='flex items-baseline gap-4'>
-            <h1 className='text-white text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-none'>
+            <h1 className='text-white text-6xl font-black tracking-tighter leading-none'>
               Analytics
             </h1>
             <span className='text-blue-400 text-sm font-mono uppercase tracking-widest mt-1'>
@@ -155,20 +153,20 @@ const Analytics = () => {
           }}
           className='max-w-6xl mx-auto px-6 mt-5 mb-10'
         >
-          <div className='flex flex-wrap gap-x-6 sm:gap-x-10 gap-y-4'>
+          <div className='flex flex-wrap gap-x-10 gap-y-3'>
             <div>
               <p className='text-blue-400/70 text-xs font-mono uppercase tracking-widest mb-0.5'>income</p>
-              <p className='text-white text-xl sm:text-2xl font-bold tabular-nums'>Rs {formatCurrency(totalIncome)}</p>
+              <p className='text-white text-2xl font-bold tabular-nums'>Rs {formatCurrency(totalIncome)}</p>
             </div>
             <div className='w-px bg-white/10 self-stretch hidden sm:block' />
             <div>
               <p className='text-blue-300/70 text-xs font-mono uppercase tracking-widest mb-0.5'>expenses</p>
-              <p className='text-white text-xl sm:text-2xl font-bold tabular-nums'>Rs {formatCurrency(totalExpense)}</p>
+              <p className='text-white text-2xl font-bold tabular-nums'>Rs {formatCurrency(totalExpense)}</p>
             </div>
             <div className='w-px bg-white/10 self-stretch hidden sm:block' />
-            <div className="w-full sm:w-auto">
+            <div>
               <p className='text-sky-400/70 text-xs font-mono uppercase tracking-widest mb-0.5'>net balance</p>
-              <p className={`text-xl sm:text-2xl font-bold tabular-nums ${netBalance >= 0 ? 'text-white' : 'text-blue-300'}`}>
+              <p className={`text-2xl font-bold tabular-nums ${netBalance >= 0 ? 'text-white' : 'text-blue-300'}`}>
                 {netBalance < 0 ? '−' : ''} Rs {formatCurrency(Math.abs(netBalance))}
               </p>
             </div>

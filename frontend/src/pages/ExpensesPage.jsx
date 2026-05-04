@@ -11,7 +11,6 @@ import AddButton from '../assets/component/AddButton'
 import Toast from '../assets/component/Toast'
 import { createExpense } from '../services/expenseService'
 import InvoiceChatWidget from '../components/InvoiceChat/InvoiceChatWidget';
-import { useTriggerRefresh } from '../context/DataRefreshContext';
 
 const ExpensesPage = () => {
 
@@ -24,7 +23,6 @@ const ExpensesPage = () => {
   const [notes, setNotes]                   = useState('');
   const [loading, setLoading]               = useState(false);
   const [toast, setToast]                   = useState(null);
-  const triggerRefresh = useTriggerRefresh();
 
   // ── Animation state ──────────────────────────────────────────────
   const [loaded, setLoaded]         = useState(false);
@@ -106,7 +104,6 @@ const ExpensesPage = () => {
         date: new Date(date).toISOString(),
       };
       await createExpense(expenseData);
-      triggerRefresh();  // update Home dashboard immediately
       setModalOpen(true);
       setTitle('');
       setExpenseAmount('');
@@ -157,10 +154,8 @@ const ExpensesPage = () => {
       <div className='relative'>
 
         {/* NAV */}
-        <div className='w-full flex justify-center pt-8' {...fadeUp('0ms')}>
-          <div className="w-full">
-            <DashBar />
-          </div>
+        <div className='flex justify-center pt-8' {...fadeUp('0ms')}>
+          <DashBar />
         </div>
 
         {/* MAIN CONTENT */}
@@ -170,7 +165,7 @@ const ExpensesPage = () => {
           <div className='flex flex-col'>
 
             {/* Heading */}
-            <p className='text-white font-bold text-5xl sm:text-[60px] md:text-[80px] leading-none' {...fadeUp('200ms')}>
+            <p className='text-white font-bold text-[80px] leading-none' {...fadeUp('200ms')}>
               Expenses
             </p>
 
@@ -194,7 +189,7 @@ const ExpensesPage = () => {
 
                   {/* Front */}
                   <div className='flip-card-front'>
-                    <img src='/income.png' alt='Expenses' className="w-full max-w-[280px] sm:max-w-[420px]" />
+                    <img src='/income.png' alt='Expenses' />
                   </div>
 
                   {/* Back */}
@@ -229,7 +224,7 @@ const ExpensesPage = () => {
 
           {/* ── RIGHT SIDE — Form card ─────────────────────────────── */}
           <div
-            className='w-full lg:w-[555px] bg-black/50 rounded-3xl px-6 sm:px-[48px] py-[30px] sm:py-[48px]'
+            className='w-full lg:w-[555px] bg-black/50 rounded-3xl px-[48px] py-[48px]'
             {...slideRight('400ms')}
           >
             {/* Skeleton loader */}

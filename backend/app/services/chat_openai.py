@@ -14,49 +14,53 @@ from app.services.mcp_tools import TOOLS, execute_tool
 
 client = OpenAI(api_key=settings.openai_api_key)
 
-SYSTEM_PROMPT = """You are a helpful personal finance assistant for a Sri Lankan business.
 
-You have tools to CREATE and READ expenses and income records in the user's database.
+# ─────────────────────────────────────────────
+#  Convert tool schema → OpenAI format
+# ─────────────────────────────────────────────
 
-Guidelines:
-- When the user wants to add/log/record money spent → call create_expense
-- When the user wants to add/log/record money earned → call create_income
-- When the user asks about their spending, finances, or history → call get_expenses and/or get_income
-- Always confirm what you saved or found in a friendly, concise reply
-- Use LKR as the default currency
-- If the user gives you an amount without a category, make a sensible inference and mention it
-- Never make up data — only report what the tools return
-"""
-
-# Convert our tool schema format to OpenAI's format
 def _to_openai_tools() -> list:
     return [
         {
             "type": "function",
             "function": {
-                "name": t["name"],
+                "name":        t["name"],
                 "description": t["description"],
-                "parameters": t["input_schema"],
+                "parameters":  t["input_schema"],
             },
         }
         for t in TOOLS
     ]
 
 
-def chat(history: list[dict], user_message: str, user_id: str, db: Session) -> str:
+# ─────────────────────────────────────────────
+#  Main chat function
+# ─────────────────────────────────────────────
+
+async def chat(
+    history:      list[dict],
+    user_message: str,
+    user_id:      str,
+    db:           Session,
+    system:       str = "",
+) -> str:
     """
-    history : list of {"role": "user"|"assistant", "content": "..."}
-    Returns the assistant's final text reply.
+    history : [{"role": "user"|"assistant", "content": "..."}]
+    system  : build_system_prompt() එකෙන් chat.py pass කරනවා
     """
+    # system prompt — chat.py pass fallback
+    from app.services.chat_gemini import build_system_prompt
+    system_prompt = system if system else build_system_prompt(hour=12, is_first_message=False)
+
     messages = (
-        [{"role": "system", "content": SYSTEM_PROMPT}]
+        [{"role": "system", "content": system_prompt}]
         + history
         + [{"role": "user", "content": user_message}]
     )
 
     openai_tools = _to_openai_tools()
 
-    # Agentic loop — keep going until no more tool calls
+    # Agentic loop — tool calls 
     while True:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -69,30 +73,33 @@ def chat(history: list[dict], user_message: str, user_id: str, db: Session) -> s
 
         msg = response.choices[0].message
 
-        # No tool call → return the text answer
+        # Tool call නෑ → text reply
         if not msg.tool_calls:
-            return msg.content
+            return msg.content or "I'm not sure how to help with that 😊"
 
-        # Add the assistant's tool-call message to history
+        # Assistant tool-call message history add
         messages.append({
-            "role": "assistant",
-            "content": msg.content,
+            "role":       "assistant",
+            "content":    msg.content,
             "tool_calls": [
                 {
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    "id":       tc.id,
+                    "type":     "function",
+                    "function": {
+                        "name":      tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
                 }
                 for tc in msg.tool_calls
             ],
         })
 
-        # Execute each tool call and append results
+        # Tool calls execute results add
         for tc in msg.tool_calls:
-            tool_input = json.loads(tc.function.arguments)
+            tool_input  = json.loads(tc.function.arguments)
             tool_result = execute_tool(tc.function.name, tool_input, user_id, db)
             messages.append({
-                "role": "tool",
+                "role":         "tool",
                 "tool_call_id": tc.id,
-                "content": tool_result,
+                "content":      tool_result,
             })

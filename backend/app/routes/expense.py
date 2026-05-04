@@ -7,7 +7,6 @@ from app.database import get_db
 from app.models import Expense
 from app.schemas import ExpenseCreate, ExpenseResponse
 from app.auth.firebase_auth import verify_firebase_token
-from app.socket_manager import emit_data_updated
 
 router = APIRouter(prefix="/api/expense", tags=["Expense"])
 
@@ -42,7 +41,6 @@ async def create_expense(
     db.add(new_expense)
     db.commit()
     db.refresh(new_expense)
-    await emit_data_updated(user_id, "expense_added")
     return new_expense
 
 
@@ -128,5 +126,4 @@ async def delete_expense(
     
     db.delete(expense)
     db.commit()
-    await emit_data_updated(user_id, "expense_deleted")
     return None

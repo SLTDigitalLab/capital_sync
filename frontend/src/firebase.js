@@ -6,13 +6,13 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 
 // Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyBLt7kNXeC9ka-D6VV5f0hLX3e22Q0xbWE",
-  authDomain: "capital-sync-5580b.firebaseapp.com",
-  projectId: "capital-sync-5580b",
-  storageBucket: "capital-sync-5580b.firebasestorage.app",
-  messagingSenderId: "267105315056",
-  appId: "1:267105315056:web:ac5983acc357ebebf6ba35",
-  measurementId: "G-3BG554ZM0E"
+  apiKey: "AIzaSyDFYt7LX0slwe-p16pMmXQiuOaE7W9vHqk",
+  authDomain: "wealth-track-6b69a.firebaseapp.com",
+  projectId: "wealth-track-6b69a",
+  storageBucket: "wealth-track-6b69a.firebasestorage.app",
+  messagingSenderId: "28913927256",
+  appId: "1:28913927256:web:2ced9b307d7627c283b62d",
+  measurementId: "G-X55TV1R0P6"
 };
 
 

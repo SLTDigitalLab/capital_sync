@@ -156,10 +156,10 @@ const IncomeExpensesChart = ({ data, filter }) => {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between items-start mb-4 gap-2">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <p className="text-white/30 text-[9px] tracking-[0.2em] uppercase mb-1">Analytics</p>
-          <p className="text-white font-semibold text-base sm:text-lg min-h-[28px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <p className="text-white font-semibold text-lg min-h-[28px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             {titleText}
             {titleText.length < title.length && <span className="cursor-blink" />}
           </p>

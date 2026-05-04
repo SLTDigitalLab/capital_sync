@@ -1,26 +1,22 @@
 """
 app/routes/chat.py
 
-POST /api/chat
+POST /api/chat/
 
 Body:
   {
-    "message": "Add an expense of LKR 3500 for electricity",
-    "provider": "gemini" | "openai",
-    "history": [
-      {"role": "user",      "content": "..."},
-      {"role": "assistant", "content": "..."}
-    ]
+    "message":          "Add an expense of LKR 3500 for electricity",
+    "provider":         "gemini" | "openai",
+    "history":          [ {"role": "user", "content": "..."}, ... ],
+    "current_hour":     14,
+    "is_first_message": true
   }
 
 Response:
   {
-    "reply": "Done! I've saved your electricity bill ...",
-    "history": [ ... updated history including this turn ... ]
+    "reply":   "Good morning! ☀️ Done! I've saved your electricity bill...",
+    "history": [ ... updated history ... ]
   }
-
-The frontend keeps `history` in state and sends it back each turn.
-No server-side session storage needed.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,27 +26,27 @@ from typing import Literal
 
 from app.database import get_db
 from app.auth.firebase_auth import verify_firebase_token
-
-# ── MCP-powered providers (replaces old services/chat_gemini & chat_openai) ──
-import app.mcp.providers.gemini as gemini_chat
-import app.mcp.providers.openai as openai_chat
+from app.services.chat_gemini import chat as gemini_chat, build_system_prompt
+from app.services.chat_openai import chat as openai_chat
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
 # ─────────────────────────────────────────────
-#  Request / Response schemas
+#  Schemas
 # ─────────────────────────────────────────────
 
 class HistoryMessage(BaseModel):
-    role: str        # "user" or "assistant" / "model"
+    role:    str   # "user" or "assistant"
     content: str
 
 
 class ChatRequest(BaseModel):
-    message:  str
-    provider: Literal["gemini", "openai"] = "gemini"
-    history:  list[HistoryMessage] = Field(default_factory=list)
+    message:          str
+    provider:         Literal["gemini", "openai"] = "gemini"
+    history:          list[HistoryMessage] = Field(default_factory=list)
+    current_hour:     int  = Field(default=12)
+    is_first_message: bool = Field(default=False)
 
 
 class ChatResponse(BaseModel):
@@ -64,17 +60,17 @@ class ChatResponse(BaseModel):
 
 @router.post("/", response_model=ChatResponse)
 async def chat_endpoint(
-    body: ChatRequest,
-    user_id: str = Depends(verify_firebase_token),
-    db: Session = Depends(get_db),
+    body:    ChatRequest,
+    user_id: str     = Depends(verify_firebase_token),
+    db:      Session = Depends(get_db),
 ):
-    """
-    Single endpoint for both Gemini and OpenAI chat.
-    Both providers now use FastMCP tools to add/remove/list
-    incomes and expenses directly in the database.
-    """
+    # Time-aware + friendly system prompt
+    system_prompt = build_system_prompt(
+        hour             = body.current_hour,
+        is_first_message = body.is_first_message,
+    )
+
     if body.provider == "gemini":
-        # Gemini uses "model" role instead of "assistant"
         gemini_history = [
             {
                 "role":  "model" if m.role == "assistant" else m.role,
@@ -82,11 +78,12 @@ async def chat_endpoint(
             }
             for m in body.history
         ]
-        reply = await gemini_chat.chat(
-            history=gemini_history,
-            user_message=body.message,
-            user_id=user_id,
-            db=db,
+        reply = await gemini_chat(
+            history      = gemini_history,
+            user_message = body.message,
+            user_id      = user_id,
+            db           = db,
+            system       = system_prompt,
         )
 
     elif body.provider == "openai":
@@ -97,17 +94,17 @@ async def chat_endpoint(
             }
             for m in body.history
         ]
-        reply = await openai_chat.chat(
-            history=openai_history,
-            user_message=body.message,
-            user_id=user_id,
-            db=db,
+        reply = await openai_chat(
+            history      = openai_history,
+            user_message = body.message,
+            user_id      = user_id,
+            db           = db,
+            system       = system_prompt,
         )
 
     else:
         raise HTTPException(status_code=400, detail="Unknown provider")
 
-    # Append this turn to history and return to frontend
     updated_history = list(body.history) + [
         HistoryMessage(role="user",      content=body.message),
         HistoryMessage(role="assistant", content=reply),
